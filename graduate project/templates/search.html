@@ -56,7 +56,17 @@
                                 <h1 class="display-5 fw-bolder">{{ match.wish2_title }}</h1>
                                 <p class="lead">BOOK YOU WISH OWNED BY {{ match.owner2_name }}</p>
                                 <div class="d-flex">
-                                    <a class="btn bg-primary btn-outline-dark me-2" href="">Send Request</a>
+                                    <form action="{{ url_for('send_request') }}" method="post">
+                                        <input type="hidden" name="recipient_id_b" value="{{ match.owner2_id }}">
+                                        <input type="hidden" name="book_title_a" value="{{ match.owned1_title }}">
+                                        <input type="hidden" name="book_title_b" value="{{ match.owned2_title }}">
+                                        
+                                        <input type="hidden" name="user_a_name" value="{{ match.owner1_name }}">
+                                        <input type="hidden" name="user_b_name" value="{{ match.owner2_name }}">
+                                        
+                                        
+                                        <button type="submit" class="btn btn-primary me-2">Send Trade Request</button>
+                                    </form>
                                     <a class="btn bg-danger btn-outline-dark" href="{{ url_for('ownlist') }}">Cancel</a>
                                 </div>
                             </div>

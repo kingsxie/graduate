@@ -2,11 +2,11 @@ from flask import Flask, render_template, flash, redirect, url_for, flash, reque
 from flask_bootstrap import Bootstrap5
 from forms import SignUpForm, LoginForm
 from flask_sqlalchemy import SQLAlchemy
-from flask_login import UserMixin, login_user, current_user, LoginManager, logout_user
+from flask_login import UserMixin, login_user, current_user, LoginManager, logout_user, login_required
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_ckeditor import CKEditor
 from sqlalchemy.orm import relationship, aliased
-
+from datetime import datetime
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6b'
 ckeditor = CKEditor(app)
@@ -47,7 +47,18 @@ class User(UserMixin, db.Model):
     name = db.Column(db.String(100))
     wishbook = relationship('WishBook')
     ownhbook = relationship('OwnBook')
-    
+    sent_messages = db.relationship('Message', foreign_keys='Message.sender_id', backref='sender', lazy='dynamic')
+    received_messages = db.relationship('Message', foreign_keys='Message.recipient_id', backref='recipient', lazy='dynamic')
+
+class Message(db.Model):
+    __tablename__ = "messages"
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    recipient_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    is_read = db.Column(db.Boolean, default=False, nullable=False)
+
 with app.app_context():
     db.create_all()
 
@@ -177,9 +188,11 @@ def search():
     current_user_id = current_user.id
 
     matches = db.session.query(
+        UserAlias1.id.label("owner1_id"),
         UserAlias1.name.label("owner1_name"), 
         OwnBookAlias1.title.label("owned1_title"),
         WishBookAlias1.title.label("wish1_title"),
+        UserAlias2.id.label("owner2_id"),
         UserAlias2.name.label("owner2_name"), 
         OwnBookAlias2.title.label("owned2_title"),
         WishBookAlias2.title.label("wish2_title")
@@ -201,45 +214,132 @@ def search():
 def searchagain():
     potential_matches = fetch_potential_matches()
     cycles = find_three_way_cycles(potential_matches)
-    
-    # For demonstration, convert cycle matches to a more readable format
     readable_cycles = [{
-        'user_a': User.query.get(cycle[0].owner_id).name,
-        'user_a_book': cycle[0].owned_title,
-        'user_a_book_isbn': cycle[0].owned_ISBN,  # Include ISBN
-        'user_b': User.query.get(cycle[1].owner_id).name,
-        'user_b_book': cycle[1].owned_title,
-        'user_b_book_isbn': cycle[1].owned_ISBN,  # Include ISBN
-        'user_c': User.query.get(cycle[2].owner_id).name,
-        'user_c_book': cycle[2].owned_title,
-        'user_c_book_isbn': cycle[2].owned_ISBN,  # Include ISBN
+        'user_a_id': cycle['match_a']['owner_id'],
+        'user_a': User.query.get(cycle['match_a']['owner_id']).name,
+        'user_a_book': cycle['match_a']['owned_title'],
+        'user_a_book_isbn': cycle['match_a']['owned_ISBN'],
+        'user_b_id': cycle['match_b']['owner_id'],
+        'user_b': User.query.get(cycle['match_b']['owner_id']).name,
+        'user_b_book': cycle['match_b']['owned_title'],
+        'user_b_book_isbn': cycle['match_b']['owned_ISBN'],
+        'user_c_id': cycle['match_c']['owner_id'],
+        'user_c': User.query.get(cycle['match_c']['owner_id']).name,
+        'user_c_book': cycle['match_c']['owned_title'],
+        'user_c_book_isbn': cycle['match_c']['owned_ISBN'],
     } for cycle in cycles]
-    print(readable_cycles)
     return render_template("searchagain.html", cycles=readable_cycles)
 
 def fetch_potential_matches():
-    # Fetch books that are both owned and wished for by different users
     potential_matches = db.session.query(
         OwnBook.user_id.label("owner_id"),
         OwnBook.title.label("owned_title"),
         OwnBook.ISBN.label("owned_ISBN"),
         WishBook.user_id.label("wisher_id"),
         WishBook.ISBN.label("wished_ISBN")
-    ).join(WishBook, OwnBook.ISBN == WishBook.ISBN).filter(OwnBook.user_id != WishBook.user_id).all()
-    
+    ).join(WishBook, OwnBook.ISBN == WishBook.ISBN).filter(OwnBook.user_id != WishBook.user_id).all()   
     return potential_matches
 
 def find_three_way_cycles(potential_matches):
-    # This is a naive approach to illustrate the concept
     cycles = []
-    
     for match_a in potential_matches:
         for match_b in [m for m in potential_matches if m.wisher_id == match_a.owner_id]:
             for match_c in [m for m in potential_matches if m.wisher_id == match_b.owner_id and m.owner_id == match_a.wisher_id]:
                 # Found a cycle
                 if current_user.id == match_a.owner_id:
-                    cycles.append((match_a, match_b, match_c))
+                    cycle = {
+                        'match_a': {
+                            'owner_id': match_a.owner_id,
+                            'owned_title': match_a.owned_title,
+                            'owned_ISBN': match_a.owned_ISBN,
+                            'wisher_id': match_a.wisher_id,
+                        },
+                        'match_b': {
+                            'owner_id': match_b.owner_id,
+                            'owned_title': match_b.owned_title,
+                            'owned_ISBN': match_b.owned_ISBN,
+                            'wisher_id': match_b.wisher_id,
+                        },
+                        'match_c': {
+                            'owner_id': match_c.owner_id,
+                            'owned_title': match_c.owned_title,
+                            'owned_ISBN': match_c.owned_ISBN,
+                            'wisher_id': match_c.wisher_id,
+                        }
+                    }
+                    cycles.append(cycle)
     return cycles
+
+@app.route('/inbox')
+@login_required
+def inbox():
+    received_messages = db.session.query(
+        Message.id,
+        Message.content,
+        User.name.label('sender_name'),
+    ).join(User, User.id == Message.sender_id).filter(Message.recipient_id == current_user.id).all()
+    return render_template('inbox.html', messages=received_messages)
+
+@app.route('/outbox')
+@login_required
+def outbox():
+    sent_messages = db.session.query(
+        Message.id,
+        Message.content,
+        User.name.label('recipient_name'),
+    ).join(User, User.id == Message.recipient_id).filter(Message.sender_id == current_user.id).all()
+    return render_template('outbox.html', messages=sent_messages)
+
+
+
+def save_trade_request(sender_id, recipient_id, content):
+    new_message = Message(sender_id=sender_id, recipient_id=recipient_id, content=content)
+    db.session.add(new_message)
+    db.session.commit()
+
+
+@app.route('/send_request', methods=['POST'])
+@login_required
+def send_request():
+    book_title_a = request.form.get('book_title_a')
+    book_title_b = request.form.get('book_title_b')
+    book_title_c = request.form.get('book_title_c')
+    recipient_id_b = request.form.get('recipient_id_b')
+    recipient_id_c = request.form.get('recipient_id_c')
+    recipient_name_b = User.query.get(recipient_id_b).name if recipient_id_b else None
+    recipient_name_c = User.query.get(recipient_id_c).name if recipient_id_c else None
+
+    trades_info = [
+        (recipient_id_b, recipient_name_b, book_title_b),
+        (recipient_id_c, recipient_name_c, book_title_c)
+    ]
+    trades_info = [(rid, rname, btitle) for rid, rname, btitle in trades_info if rid]
+
+    if len(trades_info) == 1:
+        content = f"Trade confirmation with {trades_info[0][1]} for your book '{book_title_a}' and their book '{trades_info[0][2]}'."
+    elif len(trades_info) == 2:
+        content = f"Trade confirmation among you, {trades_info[0][1]}, and {trades_info[1][1]} for books '{book_title_a}', '{trades_info[0][2]}', and '{trades_info[1][2]}'."
+    else:
+        flash('Invalid trade configuration.', 'error')
+        return redirect(url_for('outbox'))
+
+    for recipient_id, _, _ in trades_info:
+        new_message = Message(sender_id=current_user.id, recipient_id=int(recipient_id), content=content)
+        db.session.add(new_message)
+
+    db.session.commit()
+    return redirect(url_for('outbox'))
+
+@app.route('/delete_message/<int:message_id>', methods=['POST'])
+@login_required
+def delete_message(message_id):
+    message = Message.query.get_or_404(message_id)
+
+    if message.sender_id == current_user.id or message.recipient_id == current_user.id:
+        db.session.delete(message)
+        db.session.commit()    
+    return redirect(request.referrer)
+
 if __name__ == '__main__':
     app.run(debug=True)
 

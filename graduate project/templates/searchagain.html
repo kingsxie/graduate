@@ -73,7 +73,17 @@
                                 <h1 class="display-5 fw-bolder">{{ cycle.user_c_book }}</h1>
                                 <p class="lead">BOOK YOU WISH OWNED BY {{ cycle.user_c }}</p>
                                 <div class="d-flex">
-                                    <a class="btn bg-primary btn-outline-dark me-2" href="">Send Request</a>
+                                    <form action="{{ url_for('send_request') }}" method="post">
+                                        <input type="hidden" name="recipient_id_b" value="{{ cycle.user_b_id }}">
+                                        <input type="hidden" name="recipient_id_c" value="{{ cycle.user_c_id }}">
+                                        <input type="hidden" name="book_title_a" value="{{ cycle.user_a_book }}">
+                                        <input type="hidden" name="book_title_b" value="{{ cycle.user_b_book }}">
+                                        <input type="hidden" name="book_title_c" value="{{ cycle.user_c_book }}">
+                                        <input type="hidden" name="user_a_name" value="{{ cycle.user_a }}">
+                                        <input type="hidden" name="user_b_name" value="{{ cycle.user_b }}">
+                                        <input type="hidden" name="user_c_name" value="{{ cycle.user_c }}">
+                                        <button type="submit" class="btn btn-primary me-2">Send Trade Request</button>
+                                    </form>
                                     <a class="btn bg-danger btn-outline-dark" href="{{ url_for('ownlist') }}">Cancel</a>
                                 </div>
                             </div>
