@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Book</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        
+        form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            width: 300px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        button[type="submit"] {
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        button[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+        
+        #suggestions li {
+            cursor: pointer;
+            padding: 5px;
+        }
+        
+        #suggestions li:hover {
+            background-color: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+    <form action="{{ url_for('addwish') }}" method="POST">
+        <label for="title">Book Name</label>
+        <input id="title" name="title" type="text" placeholder="Enter book name" required>
+        
+        <label for="author">Book Author</label>
+        <input id="author" name="author" type="text" placeholder="Enter author name" required>
+        
+        <label for="ISBN">ISBN</label>
+        <input id="ISBN" name="ISBN" type="text" placeholder="Enter ISBN" required>
+
+        
+        <label for="autocompleteCategory">Search by Book, Author, or ISBN</label>
+        <input type="text" id="autocompleteCategory" placeholder="Start typing...">
+        <ul id="suggestions" style="list-style-type:none;"></ul>
+        
+        <button type="submit">Add Book</button>
+    </form>
+
+    <script>
+        $(document).ready(function() {
+            $('#autocompleteCategory').on('input', function() {
+                var inputVal = $(this).val();
+                if (inputVal.length > 0) {
+                    $.getJSON('/autocomplete', { q: inputVal }, function(data) {
+                        $('#suggestions').empty();
+                        $.each(data.matching_results, function(index, book) {
+                            var displayText = book['ISBN'] + ': ' + book['Book-Title'] + ' by ' + book['Book-Author'];
+                            $('#suggestions').append($('<li>').text(displayText));
+                        });
+                    });
+                } else {
+                    $('#suggestions').empty();
+                }
+            });
+        
+            $('#suggestions').on('click', 'li', function() {
+                var bookDetails = $(this).text().split(': '); 
+                var isbn = bookDetails[0];
+                var titleAuthor = bookDetails[1].split(' by ');
+                var title = titleAuthor[0];
+                var author = titleAuthor[1];
+
+                $('#ISBN').val(isbn);
+                $('#title').val(title);
+                $('#author').val(author);
+                $('#suggestions').empty();
+                });
+
+        });
+    </script>
+</body>
+</html>

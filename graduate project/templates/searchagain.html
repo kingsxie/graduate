@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta name="description" content="" />
+        <meta name="author" content="" />
+        <title>TextBridge</title>
+        <!-- Favicon-->
+        <link rel="icon" type="image/x-icon" href="assets/favicon.ico" />
+        <!-- Bootstrap icons-->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.5.0/font/bootstrap-icons.css" rel="stylesheet" />
+        <!-- Core theme CSS (includes Bootstrap)-->
+        <link href="../static/css/styles3.css" rel="stylesheet" />
+    </head>
+    <body>
+        <!-- Navigation-->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container px-4 px-lg-5">
+                <a class="navbar-brand" href="#!">Matching Result</a>
+                    <form class="d-flex">
+                        <div class="text-center"><a class="btn bg-danger btn-outline-dark" href="{{ url_for('ownlist') }}">Back</a></div>
+                    </form>
+                </div>
+            </div>
+        </nav>
+        <!-- Product section-->
+        {% if cycles %}
+    {% for cycle in cycles %}
+        <div class="container my-5">
+            <div class="d-flex flex-row justify-content-between align-items-center">
+                <!-- First Section -->
+                <section class="py-5 flex-fill">
+                    <div class="container px-4 px-lg-5">
+                        <div class="row gx-4 gx-lg-5 align-items-center">
+                            <div class="col-md-6"><img class="card-img-top mb-5 mb-md-0" src="https://dummyimage.com/600x700/dee2e6/6c757d.jpg" alt="..." /></div>
+                            <div class="col-md-6">
+                                <h1 class="display-5 fw-bolder">{{ cycle.user_a_book }}</h1>
+                                <p class="lead">BOOK YOU HAVE {{ cycle.user_a }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <!-- Arrow Icons -->
+                <div>
+                    <span style="display: inline-block; color: blueviolet;  font-size: 50px;">&rAarr;</span>
+                    <span style="display: inline-block; color: greenyellow; font-size: 50px;">&lAarr;</span>
+                </div>
+                <!-- Second Section -->
+                <section class="py-5 flex-fill">
+                    <div class="container px-4 px-lg-5">
+                        <div class="row gx-4 gx-lg-5 align-items-center">
+                            <div class="col-md-6"><img class="card-img-top mb-5 mb-md-0" src="https://dummyimage.com/600x700/dee2e6/6c757d.jpg" alt="..." /></div>
+                            <div class="col-md-6">
+                                <h1 class="display-5 fw-bolder">{{ cycle.user_b_book }}</h1>
+                                <p class="lead">BOOK YOU WISH OWNED BY {{ cycle.user_b }}</p>
+                                
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <div>
+                    <span style="display: inline-block; color: blueviolet;  font-size: 50px;">&rAarr;</span>
+                    <span style="display: inline-block; color: greenyellow; font-size: 50px;">&lAarr;</span>
+                </div>
+
+                <section class="py-5 flex-fill">
+                    <div class="container px-4 px-lg-5">
+                        <div class="row gx-4 gx-lg-5 align-items-center">
+                            <div class="col-md-6"><img class="card-img-top mb-5 mb-md-0" src="https://dummyimage.com/600x700/dee2e6/6c757d.jpg" alt="..." /></div>
+                            <div class="col-md-6">
+                                <h1 class="display-5 fw-bolder">{{ cycle.user_c_book }}</h1>
+                                <p class="lead">BOOK YOU WISH OWNED BY {{ cycle.user_c }}</p>
+                                <div class="d-flex">
+                                    <form action="{{ url_for('send_request') }}" method="post">
+                                        <input type="hidden" name="recipient_id_b" value="{{ cycle.user_b_id }}">
+                                        <input type="hidden" name="recipient_id_c" value="{{ cycle.user_c_id }}">
+                                        <input type="hidden" name="book_title_a" value="{{ cycle.user_a_book }}">
+                                        <input type="hidden" name="book_title_b" value="{{ cycle.user_b_book }}">
+                                        <input type="hidden" name="book_title_c" value="{{ cycle.user_c_book }}">
+                                        <input type="hidden" name="user_a_name" value="{{ cycle.user_a }}">
+                                        <input type="hidden" name="user_b_name" value="{{ cycle.user_b }}">
+                                        <input type="hidden" name="user_c_name" value="{{ cycle.user_c }}">
+                                        <button type="submit" class="btn btn-primary me-2">Send Trade Request</button>
+                                    </form>
+                                    <a class="btn bg-danger btn-outline-dark" href="{{ url_for('ownlist') }}">Cancel</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    {% endfor %}
+{% else %}
+    <p>No detailed matches found.</p>
+{% endif %}
+
+        
+        <!-- Footer-->
+        <footer class="py-5 bg-dark">
+            <div class="container"><p class="m-0 text-center text-white">Copyright &copy; TextBridge 2023</p></div>
+        </footer>
+        <!-- Bootstrap core JS-->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- Core theme JS-->
+        <script src="js/scripts.js"></script>
+    </body>
+</html>
