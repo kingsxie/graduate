@@ -12,7 +12,7 @@ import pandas as pd
 from recommendation import get_book_recommendations
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = ''
+app.config['SECRET_KEY'] = '8BYkEfBA6O6donzWlSihBXox7C0sKR6b'
 ckeditor = CKEditor(app)
 Bootstrap5(app)
 
